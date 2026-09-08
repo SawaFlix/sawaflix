@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 
@@ -20,47 +19,34 @@ export default function AuthModal({ isOpen, onClose, promptMessage = 'to continu
   const [error, setError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const handleGoogleCredential = async (credentialResponse: CredentialResponse) => {
+  const handleGoogleSignIn = async () => {
     setError(null);
-
-    if (!credentialResponse.credential) {
-      setError('Unable to continue with Google right now. Please try again.');
-      return;
-    }
-
     setIsGoogleLoading(true);
+
     try {
       const supabase = createClient();
-      const { data, error: signInError } = await supabase.auth.signInWithIdToken({
+      const redirectBase = typeof window !== 'undefined' ? window.location.origin : 'https://sawaflix.com';
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        token: credentialResponse.credential,
+        options: {
+          redirectTo: `${redirectBase}/auth/callback`,
+          scopes: 'openid email profile https://www.googleapis.com/auth/youtube.force-ssl',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
       });
 
-      if (signInError || !data.user) {
-        throw signInError || new Error('No user returned from Supabase');
+      if (oauthError) {
+        console.error('Google OAuth error:', oauthError);
+        setError(oauthError.message || 'Unable to continue with Google right now. Please try again.');
+        setIsGoogleLoading(false);
       }
-
-      // Enrich public.users row with metadata from Google OAuth ID token
-      const meta = data.user.user_metadata ?? {};
-      const { error: syncError } = await supabase.from('users').upsert(
-        {
-          id: data.user.id,
-          email: data.user.email,
-          username: meta.full_name || meta.name || data.user.email?.split('@')[0] || 'User',
-          profile_image_url: meta.avatar_url || meta.picture || null,
-          verification_status: 'approved',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      );
-      if (syncError) console.error('Profile sync warning:', syncError.message);
-
-      router.refresh();
-      onClose();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       setError(err?.message || 'Unable to continue with Google right now. Please try again.');
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -68,8 +54,12 @@ export default function AuthModal({ isOpen, onClose, promptMessage = 'to continu
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-          {/* Backdrop */}
+        <div 
+          className="fixed inset-0 z-[999999] flex items-center justify-center p-4 pointer-events-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Backdrop — explicitly isolated behind the modal card */}
           <motion.div
             key="auth-modal-backdrop"
             initial={{ opacity: 0 }}
@@ -77,22 +67,24 @@ export default function AuthModal({ isOpen, onClose, promptMessage = 'to continu
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer -z-10"
           />
 
-          {/* Modal Card */}
+          {/* Modal Card — stops click propagation so card clicks never close modal */}
           <motion.div
             key="auth-modal-card"
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 12 }}
             transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-            className="relative z-10 w-full max-w-[390px] bg-[#0E121A]/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] p-6 sm:p-7 flex flex-col items-center backdrop-blur-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            className="relative z-10 w-full max-w-[390px] bg-[#0E121A]/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] p-6 sm:p-7 flex flex-col items-center backdrop-blur-2xl overflow-hidden pointer-events-auto"
           >
             {/* Close button */}
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-30"
+              className="absolute top-4 right-4 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-30 pointer-events-auto"
               aria-label="Close modal"
             >
               <X size={18} />
@@ -127,10 +119,14 @@ export default function AuthModal({ isOpen, onClose, promptMessage = 'to continu
               </div>
             )}
 
-            {/* Google Sign In Button — GIS Client-Side Popup with ID Token */}
-            <div className="relative w-full mb-5 overflow-hidden rounded-xl">
-              {/* Styled visible button */}
-              <div className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl bg-white text-[#0E121A] font-bold text-sm shadow-md transition-all duration-200 pointer-events-none border border-white/20">
+            {/* Google Sign In Button — Direct, clickable, and robust */}
+            <div className="relative w-full mb-5">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl bg-white text-[#0E121A] hover:bg-zinc-100 active:scale-[0.98] font-bold text-sm shadow-md transition-all duration-200 border border-white/20 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed pointer-events-auto"
+              >
                 {isGoogleLoading ? (
                   <>
                     <Loader2 size={18} className="animate-spin text-zinc-600" />
@@ -147,20 +143,7 @@ export default function AuthModal({ isOpen, onClose, promptMessage = 'to continu
                     <span>Continue with Google</span>
                   </>
                 )}
-              </div>
-
-              {/* Real Google Identity Services interactive button on top, scaled to cover entire button bounds */}
-              {!isGoogleLoading && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 cursor-pointer overflow-hidden z-20 transform scale-[1.35] origin-center [&>div]:w-full! [&_iframe]:cursor-pointer">
-                  <GoogleLogin
-                    onSuccess={handleGoogleCredential}
-                    onError={() => setError('Unable to continue with Google right now. Please try again.')}
-                    width="400"
-                    theme="filled_black"
-                    shape="rectangular"
-                  />
-                </div>
-              )}
+              </button>
             </div>
 
             {/* Terms and Privacy Footer */}
