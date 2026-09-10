@@ -109,16 +109,7 @@ export async function updateSession(request: NextRequest) {
     "/auth/callback",
     "/update-password",
     "/forgot-password",
-    "/dashboard/blogs",
     "/dashboard/reels",
-    "/dashboard/movie",
-    "/dashboard/music",
-    "/dashboard/musicpage",
-    "/dashboard/livetv",
-    "/dashboard/series",
-    "/dashboard/education",
-    "/dashboard/artists",
-    "/artistpage",
     "/home",
     "/waiting-list"
   ];
@@ -143,6 +134,7 @@ export async function updateSession(request: NextRequest) {
   if (!user) {
     if (isPublicRoute || pathname === '/' || pathname === '/favicon.ico') return supabaseResponse;
     const redirectUrl = new URL("/dashboard", request.url);
+    redirectUrl.searchParams.set("loginRequired", "true");
     redirectUrl.searchParams.set("redirectedFrom", pathname);
     if (isDev) console.log(`No user, redirecting to dashboard from ${pathname}.`);
     return redirectWithCookies(redirectUrl);

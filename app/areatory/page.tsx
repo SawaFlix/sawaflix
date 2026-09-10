@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import AreaToryHero from "@/components/AreaTory/AreaToryHero";
 import StoryGrid from "@/components/AreaTory/StoryGrid";
 import { Send, Bell, MessageSquare } from "lucide-react";
+import { CommentSidebarProvider } from '@/components/AreaTory/CommentSidebarContext';
 
 export default function AreaToryPage() {
   return (

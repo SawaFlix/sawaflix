@@ -158,10 +158,9 @@ export default function MusicPage(): React.ReactElement {
     setRepeatMode(getNextRepeatMode(repeatMode));
   };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const newVol = parseFloat(e.target.value);
-    setVolume(newVol);
-  };
+  const handleVolumeChange = (newVol: number): void => {
+  setVolume(newVol);
+};
 
   // Render skeleton loader
   const renderSkeleton = (): React.ReactElement => (

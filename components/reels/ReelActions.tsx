@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
+import Image from 'next/image';
 import { Heart, MessageCircle, MoreHorizontal, Share2, Bookmark } from 'lucide-react';
 import type { Video } from '@/types/youtube';
 import { likeYouTubeVideoAction } from '@/app/actions/youtube';
 import { formatCount } from '@/utils/formatCount';
 import { useFavorites } from '@/contexts/FavoriteContext';
 import { likeService } from '@/services/likeService';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
 interface ReelActionsProps {
   video: Video;
@@ -33,6 +36,8 @@ export function ReelActions({ video, commentsCount, realLikeCount, realIsLiked, 
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [, startTransition] = useTransition();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isAuthenticated } = useAuthSession();
+  const { openAuthModal } = useAuthModal();
 
   const saved = isFavorite(video.id);
 
@@ -52,6 +57,11 @@ export function ReelActions({ video, commentsCount, realLikeCount, realIsLiked, 
   }, [realIsLiked, realLikeCount]);
 
   const handleLike = () => {
+    if (!isAuthenticated) {
+      openAuthModal('to like reels');
+      return;
+    }
+
     hydratedRef.current = true;
     const nextLiked = !liked;
     // Optimistic update — rolled back if the server action throws.
@@ -96,6 +106,10 @@ export function ReelActions({ video, commentsCount, realLikeCount, realIsLiked, 
   };
 
   const handleSave = () => {
+    if (!isAuthenticated) {
+      openAuthModal('to save reels to your favorites');
+      return;
+    }
     toggleFavorite(video);
     setIsMoreOpen(false);
   };
@@ -107,17 +121,38 @@ export function ReelActions({ video, commentsCount, realLikeCount, realIsLiked, 
         onClick={handleLike}
         aria-label={liked ? 'Unlike' : 'Like'}
         aria-pressed={liked}
-        className="flex flex-col items-center gap-1 text-white"
+        className="group flex flex-col items-center gap-1 text-white"
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-md transition-transform active:scale-90">
-          <Heart size={24} className={liked ? 'fill-red-600 text-red-600' : 'text-white'} />
+        <span
+          className={`relative flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-md transition-all active:scale-85 ${
+            liked
+              ? 'bg-red-500/20 ring-2 ring-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] scale-105'
+              : 'bg-black/40 hover:bg-black/60'
+          }`}
+        >
+          <Image
+            src="/logos_and_pwas/like.png"
+            alt="Like"
+            width={32}
+            height={32}
+            priority
+            className={`w-7 h-7 object-contain transition-transform duration-200 select-none ${
+              liked ? 'scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'opacity-85 group-hover:opacity-100 group-hover:scale-105'
+            }`}
+          />
         </span>
-        <span className="text-xs font-bold drop-shadow">{formatCount(likeCount)}</span>
+        <span className="text-xs font-bold drop-shadow font-mono tracking-tight">{formatCount(likeCount)}</span>
       </button>
 
       <button
         type="button"
-        onClick={onShowComments}
+        onClick={() => {
+          if (!isAuthenticated) {
+            openAuthModal('to view and post comments');
+            return;
+          }
+          onShowComments();
+        }}
         aria-label="View comments"
         className="flex flex-col items-center gap-1 text-white"
       >

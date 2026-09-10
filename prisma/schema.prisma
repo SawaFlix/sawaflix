@@ -20,3 +20,76 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
 }
+
+// 1. Unique User Likes per Story
+model StoryLike {
+  id        String   @id @default(cuid())
+  storyId   String   // Sanity story ID or slug
+  userId    String   // Supabase auth user UUID
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@index([userId])
+}
+
+// 2. Deduplicated 24-Hour Views
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String?
+  viewHash  String   // SHA-256 hash for daily deduplication
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, viewHash])
+  @@index([storyId])
+}
+
+// 3. Threaded Comments with 1-Level Nested Replies
+model StoryComment {
+  id          String   @id @default(cuid())
+  storyId     String
+  userId      String
+  userName    String
+  userAvatar  String?
+  userRole    String?  @default("member") // 'member' | 'creator' | 'admin' | 'verified'
+  content     String   @db.Text
+  parentId    String?
+  isPinned    Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent      StoryComment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     StoryComment[]     @relation("CommentReplies")
+  likes       StoryCommentLike[]
+
+  @@index([storyId])
+  @@index([parentId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// 4. Upvotes on Comments
+model StoryCommentLike {
+  id        String       @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime     @default(now())
+
+  comment   StoryComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+// 5. Denormalized Cached Counters for Instant Reads
+model StoryStats {
+  storyId       String   @id
+  likesCount    Int      @default(0)
+  viewsCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  updatedAt     DateTime @updatedAt
+}
+

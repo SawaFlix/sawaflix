@@ -775,6 +775,9 @@ function SawaFlixContent({ videoId: videoIdProp }) {
   const videoIdParam = searchParams.get('videoId');
   const videoId = videoIdProp || videoIdParam;
 
+  const loginRequired = searchParams.get('loginRequired');
+  const redirectedFrom = searchParams.get('redirectedFrom');
+
   const [activeCategory, setActiveCategory] = useState(catParam || "all");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { openAuthModal } = useAuthModal();
@@ -782,6 +785,13 @@ function SawaFlixContent({ videoId: videoIdProp }) {
   const handleRequestAuth = (promptMessage = '') => {
     openAuthModal(promptMessage);
   };
+
+  useEffect(() => {
+    if (loginRequired === 'true' && !isAuthenticated) {
+      const feature = redirectedFrom ? `to access ${redirectedFrom.replace('/dashboard/', '')}` : 'to access this page';
+      openAuthModal(feature);
+    }
+  }, [loginRequired, redirectedFrom, isAuthenticated, openAuthModal]);
 
   useEffect(() => {
     import('@/utils/supabase/client').then(({ createClient }) => {

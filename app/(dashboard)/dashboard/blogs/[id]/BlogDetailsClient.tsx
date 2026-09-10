@@ -9,6 +9,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { PortableText } from "@portabletext/react";
 import { sanityFetch, urlFor } from "@/lib/sanity/client";
+import StoryInteractionBar from "@/components/AreaTory/StoryInteractionBar";
+import { CommentSidebarProvider } from "@/components/AreaTory/CommentSidebarContext";
+import StoryCommentsSection from "@/components/AreaTory/StoryCommentsSection";
+
 
 interface StoryDetail {
   _id: string;
@@ -133,6 +137,18 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
   const [hasMounted, setHasMounted] = useState(false);
   const [isPlayed, setIsPlayed] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [stats, setStats] = useState<{
+    likesCount: number;
+    viewsCount: number;
+    commentsCount: number;
+    isLiked: boolean;
+  }>({
+    likesCount: 0,
+    viewsCount: 0,
+    commentsCount: 0,
+    isLiked: false,
+  });
+
 
   const getYouTubeID = (url: string) => {
     if (!url) return null;
@@ -179,6 +195,33 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
 
         if (data) {
           setStory(data);
+          const storyKey = data._id || slug;
+
+          // Asynchronously register deduplicated view in Neon DB
+          fetch(`/api/stories/${encodeURIComponent(storyKey)}/view`, { method: 'POST' })
+            .then((r) => r.json())
+            .then((res) => {
+              if (typeof res?.viewsCount === 'number') {
+                setStats((prev) => ({ ...prev, viewsCount: res.viewsCount }));
+              }
+            })
+            .catch(() => {});
+
+          // Fetch consolidated stats from Neon DB
+          fetch(`/api/stories/${encodeURIComponent(storyKey)}/stats`)
+            .then((r) => r.json())
+            .then((res) => {
+              if (res && !res.error) {
+                setStats({
+                  likesCount: res.likesCount ?? data.likes ?? 0,
+                  viewsCount: res.viewsCount ?? data.views ?? 0,
+                  commentsCount: res.commentsCount ?? 0,
+                  isLiked: res.isLiked ?? false,
+                });
+              }
+            })
+            .catch(() => {});
+
           if (typeof window !== 'undefined') {
             localStorage.setItem(`read_sanity_story_${data._id}`, 'true');
             if (data.slug?.current) {
@@ -188,6 +231,7 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
               localStorage.setItem(`read_sanity_story_${slug}`, 'true');
             }
           }
+
           if (data.category?._id) {
             const RELATED_QUERY = `*[_type == "story" && category._ref == $catId && _id != $currentId] | order(publishedAt desc)[0...3] {
               _id, title, slug, mainImage,
@@ -252,7 +296,7 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
     );
   }
 
-  return (
+  return (<CommentSidebarProvider>
     <div className="min-h-screen bg-[#0B0E14] text-white">
       <button
         onClick={() => router.back()}
@@ -305,21 +349,14 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-5">
-              <button className="flex items-center gap-1.5 group cursor-pointer">
-                <Heart className="w-4 h-4 text-gray-500 group-hover:text-red-500 transition-colors" />
-                <span className="text-xs font-bold text-gray-500 group-hover:text-white transition-colors">
-                  {(story.likes || 0).toLocaleString()}
-                </span>
-              </button>
-              <button className="flex items-center gap-1.5 group cursor-pointer">
-                <MessageCircle className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-                <span className="text-xs font-bold text-gray-500 group-hover:text-white transition-colors">0</span>
-              </button>
-              <button className="flex items-center gap-1.5 group cursor-pointer">
-                <Share2 className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-              </button>
-            </div>
+            <StoryInteractionBar
+              storyId={story._id || slug}
+              storyTitle={story.title}
+              initialLikes={stats.likesCount || story.likes || 0}
+              initialComments={stats.commentsCount || 0}
+              initialIsLiked={stats.isLiked}
+            />
+
           </div>
         </div>
 
@@ -429,9 +466,19 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
 
           <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
             <Eye className="w-3.5 h-3.5" />
-            {(story.views || 0).toLocaleString()} Views
+            {(stats.viewsCount || story.views || 0).toLocaleString()} Views
           </div>
         </div>
+
+        {/* Threaded Discussions / Comments Section backed by Neon DB */}
+        <StoryCommentsSection
+          storyId={story._id || slug}
+          storyTitle={story.title}
+          onCommentCountChange={(count) =>
+            setStats((prev) => ({ ...prev, commentsCount: count }))
+          }
+        />
+
 
         {relatedStories.length > 0 && (
           <div className="mt-20 mb-12">
@@ -464,5 +511,6 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
         )}
       </article>
     </div>
+    </CommentSidebarProvider>
   );
 }

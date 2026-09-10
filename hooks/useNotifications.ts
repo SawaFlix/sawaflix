@@ -91,20 +91,26 @@ export function useNotifications() {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
 
+      // Guest / unauthenticated users must never receive notifications or unread badges
+      if (!user) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+        return;
+      }
+
       // 1. Fetch Supabase notifications
       let supabaseNotifs: Notification[] = [];
-      if (user) {
-        const { data, error: fetchError } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
+      const { data, error: fetchError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
         if (!fetchError && data) {
           supabaseNotifs = data.map(mapNotification);
         }
-      }
 
       // 2. Fetch latest Sanity stories to ensure no stories are missed
       let sanityNotifs: Notification[] = [];

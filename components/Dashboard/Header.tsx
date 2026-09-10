@@ -295,12 +295,18 @@ const Header = ({
           {/* Notifications Bell */}
           <div className="relative">
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  openAuthModal('to view notifications');
+                  return;
+                }
+                setShowNotifications(!showNotifications);
+              }}
               className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all relative group cursor-pointer"
               aria-label="Notifications"
             >
               <Bell size={18} className="group-hover:scale-110 transition-transform" />
-              {isSubscribed && unreadCount > 0 && (
+              {isAuthenticated && isSubscribed && unreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[14.5px] h-[14.5px] px-0.5 bg-[#E50914] text-white font-black rounded-full flex items-center justify-center text-[8px] shadow-[0_0_10px_rgba(229,9,20,0.7)] animate-in zoom-in duration-300 pointer-events-none">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
@@ -344,9 +350,19 @@ const Header = ({
             )}
           </div>
 
-          <Link href="/dashboard/settings" className="hidden sm:block p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
-            <Settings size={16} />
-          </Link>
+          {isAuthenticated ? (
+            <Link href="/dashboard/settings" className="hidden sm:block p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer" aria-label="Settings">
+              <Settings size={16} />
+            </Link>
+          ) : (
+            <button
+              onClick={() => openAuthModal('to access settings')}
+              className="hidden sm:block p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              aria-label="Settings"
+            >
+              <Settings size={16} />
+            </button>
+          )}
 
           {isAuthenticated ? (
             <div className="relative">

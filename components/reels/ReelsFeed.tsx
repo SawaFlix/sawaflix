@@ -13,6 +13,8 @@ import { consumeReelHandoff } from '@/utils/reels/reelHandoff';
 import { ReelCard } from './ReelCard';
 import { ReelHeader } from './ReelHeader';
 import { ReelLoading } from './ReelLoading';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
 const MUTE_STORAGE_KEY = 'sawaflix_reels_muted';
 
@@ -72,9 +74,25 @@ export function ReelsFeed({ initialVideos, initialHasMore, initialVideoId }: Ree
   const { containerRef, activeIndex, setItemRef } = useActiveReel({ threshold: 0.8 });
   const [sentinelRef, sentinelVisible] = useIntersection<HTMLDivElement>({ threshold: 0.1 });
 
+  const { isAuthenticated } = useAuthSession();
+  const { openAuthModal } = useAuthModal();
+  const GUEST_PREVIEW_LIMIT = 4;
+
   const [isMuted, setIsMuted] = useState(true);
   const [manuallyPaused, setManuallyPaused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+
+  // Enforce guest preview limit (free preview of up to 4 reels)
+  useEffect(() => {
+    if (!isAuthenticated && activeIndex >= GUEST_PREVIEW_LIMIT) {
+      setManuallyPaused(true);
+      openAuthModal('to watch more reels and explore SawaFlix');
+      const container = containerRef.current;
+      if (container) {
+        container.scrollTo({ top: (GUEST_PREVIEW_LIMIT - 1) * container.clientHeight, behavior: 'smooth' });
+      }
+    }
+  }, [activeIndex, isAuthenticated, openAuthModal, containerRef]);
 
   // Remembers where the feed was scrolled to right before opening a search
   // result into the viewer, so leaving that viewer can put the user back
@@ -286,9 +304,14 @@ export function ReelsFeed({ initialVideos, initialHasMore, initialVideoId }: Ree
   const goToNext = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
+    if (!isAuthenticated && activeIndex >= GUEST_PREVIEW_LIMIT - 1) {
+      setManuallyPaused(true);
+      openAuthModal('to watch more reels and explore SawaFlix');
+      return;
+    }
     const nextIndex = Math.min(activeIndex + 1, videos.length - 1);
     container.scrollTo({ top: nextIndex * container.clientHeight, behavior: 'smooth' });
-  }, [activeIndex, videos.length, containerRef]);
+  }, [activeIndex, videos.length, containerRef, isAuthenticated, openAuthModal]);
 
   const toggleMute = () => {
     setIsMuted((prev) => {

@@ -14,6 +14,8 @@ import { ReelActions } from './ReelActions';
 import { ReelComments } from './ReelComments';
 import { ReelLoading } from './ReelLoading';
 import { ReelScrubIndicator } from './ReelScrubIndicator';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
 interface ReelCardProps {
   video: Video;
@@ -48,6 +50,8 @@ export function ReelCard({ video, isActive, isPaused, isMuted, isDesktop, hasNex
 
   const nativeSrc = video.videoUrl || video.embedUrl || (video.id ? `http://localhost:3001/api/admin/upload/stream/${video.id}` : '');
 
+  const { isAuthenticated } = useAuthSession();
+  const { openAuthModal } = useAuthModal();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [, startTransition] = useTransition();
@@ -121,6 +125,10 @@ export function ReelCard({ video, isActive, isPaused, isMuted, isDesktop, hasNex
   }, [hasNext, onEnded]);
 
   const handleToggleFollow = () => {
+    if (!isAuthenticated) {
+      openAuthModal('to follow creators');
+      return;
+    }
     const next = !isFollowing;
     setIsFollowing(next);
     startTransition(async () => {
@@ -141,6 +149,10 @@ export function ReelCard({ video, isActive, isPaused, isMuted, isDesktop, hasNex
   };
 
   const handleSendComment = (text: string) => {
+    if (!isAuthenticated) {
+      openAuthModal('to comment on reels');
+      return;
+    }
     addComment({
       id: `local-${Date.now()}`,
       author: 'You',

@@ -9,6 +9,8 @@ import { getCultureFeedAction, searchVideosAction } from '@/app/actions/youtube'
 import type { Video } from '@/types/youtube';
 import { mapYoutubeItem, extractVideoId, type RawYoutubeFeedItem } from '@/utils/reels/mapYoutubeItem';
 import { stashReelForHandoff } from '@/utils/reels/reelHandoff';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import { get, set } from 'idb-keyval';
 
 interface CultureInfiniteFeedProps {
@@ -121,6 +123,8 @@ const FALLBACK_CULTURE_VIDEOS: Video[] = [
 
 export default function CultureInfiniteFeed({ activeCategory = 'all' }: CultureInfiniteFeedProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuthSession();
+  const { openAuthModal } = useAuthModal();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -253,6 +257,10 @@ export default function CultureInfiniteFeed({ activeCategory = 'all' }: CultureI
 
   // Opening the video directly in the same playing mode that opens when clicking reels
   const handleVideoClick = (video: Video) => {
+    if (!isAuthenticated) {
+      openAuthModal('to watch videos');
+      return;
+    }
     stashReelForHandoff(video);
     router.push(`/dashboard/reels?id=${video.id}`);
   };

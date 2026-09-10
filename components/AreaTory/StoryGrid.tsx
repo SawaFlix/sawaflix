@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Calendar, Loader2 } from "lucide-react";
+import { ArrowUpRight, Calendar, Loader2, Heart, MessageCircle, Eye } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { formatCount } from "@/utils/formatCount";
+
 import { getStories, getCategories } from "@/lib/sanity/queries";
 import { urlFor } from "@/lib/sanity/client";
 
@@ -274,9 +277,33 @@ export default function StoryGrid() {
                     {story.excerpt}
                   </p>
 
+                  {/* Stats Row */}
+                  <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-white/5 text-zinc-400">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1.5 hover:text-red-400 transition-colors" title="Likes">
+                        <Image
+                          src="/logos_and_pwas/like.png"
+                          alt="Likes"
+                          width={14}
+                          height={14}
+                          className="w-3.5 h-3.5 object-contain"
+                        />
+                        <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(story.likes)}</span>
+                      </span>
+                      <span className="flex items-center gap-1 hover:text-white transition-colors" title="Comments">
+                        <MessageCircle className="w-3 h-3 text-zinc-400" />
+                        <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(story.comments)}</span>
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1 text-zinc-500" title="Views">
+                      <Eye className="w-3 h-3 text-zinc-400" />
+                      <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(story.views)}</span>
+                    </span>
+                  </div>
+
                   <Link
                     href={`/dashboard/blogs/${story.slug?.current || story._id}`}
-                    className="flex items-center gap-2 text-white font-bold text-[10px] tracking-widest group/link cursor-pointer hover:text-red-500 transition-colors"
+                    className="flex items-center gap-2 text-white font-bold text-[10px] tracking-widest group/link cursor-pointer hover:text-red-500 transition-colors mt-4"
                   >
                     Read story
                     <ArrowUpRight className="w-3 h-3 transition-transform group-hover/link:translate-x-1 group-hover/link:-translate-y-1" />

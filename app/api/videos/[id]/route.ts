@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { BACKEND_URL } from '@/lib/apiConfig';
 import { getVideoDetailsAction } from '@/app/actions/youtube';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
+
 
   if (!id) {
     return NextResponse.json({ error: 'Missing video ID' }, { status: 400 });

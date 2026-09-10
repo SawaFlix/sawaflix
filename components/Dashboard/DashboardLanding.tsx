@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import { Play, ChevronRight, ChevronLeft, Film, Search, TrendingUp, BookOpen, Sparkles, Video as VideoIcon } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, Film, Search, TrendingUp, BookOpen, Video as VideoIcon, Heart, MessageCircle, Eye } from 'lucide-react';
+
 import { MOVIES_DATA } from '../Movie/constants';
 import { sanityFetch, urlFor } from '@/lib/sanity/client';
 import { getStories, getCategories } from '@/lib/sanity/queries';
@@ -76,6 +77,8 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
   const [stories, setStories] = useState<any[]>([]);
   const [storyCategories, setStoryCategories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
+  const [storyStatsMap, setStoryStatsMap] = useState<Record<string, { likesCount: number; viewsCount: number; commentsCount: number }>>({});
+
 
   const moviesScrollRef = useRef<HTMLDivElement>(null);
   const longFormScrollRef = useRef<HTMLDivElement>(null);
@@ -209,8 +212,13 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
   // Handle banner play/read navigation
   const handleBannerClick = () => {
     if (!heroItem) return;
-    if (heroItem.type === 'movie' && !isAuthenticated) {
-      openAuthModal('to watch this movie');
+    if (!isAuthenticated) {
+      const reason = heroItem.type === 'blog' 
+        ? 'to read this story' 
+        : heroItem.type === 'movie' 
+        ? 'to watch this movie' 
+        : 'to watch this video';
+      openAuthModal(reason);
       return;
     }
     router.push(heroItem.targetUrl);
@@ -225,8 +233,24 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
           getStories(),
           getCategories()
         ]);
-        if (storiesData) setStories(storiesData);
+        if (storiesData) {
+          setStories(storiesData);
+          const ids = storiesData.map((s: any) => s._id || s.slug?.current).filter(Boolean);
+          if (ids.length > 0) {
+            fetch('/api/stories/batch-stats', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storyIds: ids }),
+            })
+              .then((r) => r.json())
+              .then((res) => {
+                if (res?.stats) setStoryStatsMap(res.stats);
+              })
+              .catch(() => {});
+          }
+        }
         if (categoriesData) setStoryCategories(categoriesData);
+
       } catch (err) {
         console.error('Failed to fetch stories:', err);
       } finally {
@@ -374,20 +398,8 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
 
             {/* Top-right item type badge */}
             <div className="absolute top-4 right-4 z-10">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase border backdrop-blur-md ${
-                heroItem.type === 'admin_video' 
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
-                  : heroItem.type === 'blog'
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
-                  : heroItem.type === 'youtube'
-                  ? 'bg-red-500/20 text-red-300 border-red-400/30'
-                  : 'bg-white/10 text-white border-white/20'
-              }`}>
-                {heroItem.type === 'admin_video' && <Sparkles size={11} className="text-amber-400 animate-pulse" />}
-                {heroItem.type === 'blog' && <BookOpen size={11} className="text-emerald-400" />}
-                {heroItem.type === 'youtube' && <Play size={11} className="text-red-400 fill-current" />}
-                {heroItem.type === 'movie' && <Film size={11} className="text-yellow-400" />}
-                <span>{heroItem.badge}</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase border bg-white/30 text-black border-white/20">
+                {heroItem.badge}
               </span>
             </div>
 
@@ -524,7 +536,13 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
                 {longFormVideos.map((video: any) => (
                   <div
                     key={video.id}
-                    onClick={() => onPlayReel(video)}
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openAuthModal('to watch videos');
+                        return;
+                      }
+                      onPlayReel(video);
+                    }}
                     className="relative w-[260px] sm:w-[300px] flex-shrink-0 snap-start flex flex-col gap-3 cursor-pointer group/card"
                   >
                     <div className="relative aspect-video rounded-xl overflow-hidden border border-white/5 group-hover/card:border-white/20 transition-colors">
@@ -576,6 +594,11 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
             ) : filteredStories.length > 0 ? (
               filteredStories.slice(0, 8).map((story: any, index: number) => {
                 const dateText = formatRelativeTime(story.publishedAt);
+                const storyKey = story._id || story.slug?.current;
+                const neonStats = storyStatsMap[storyKey];
+                const likes = neonStats ? neonStats.likesCount : (story.likes ?? 0);
+                const views = neonStats ? neonStats.viewsCount : (story.views ?? 0);
+                const comments = neonStats ? neonStats.commentsCount : 0;
                 
                 return (
                   <div
@@ -609,9 +632,39 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
                         <div className="w-1 h-1 rounded-full bg-gray-700" />
                         <span>{story.readTime || "3 min read"}</span>
                       </div>
+
+                      {/* Clean & Professional Stats Row */}
+                      <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-white/5 text-zinc-400">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1 hover:text-red-400 transition-colors" title="Likes">
+                            <Heart className="w-3 h-3 text-red-500 fill-red-500/20" />
+                            <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(likes)}</span>
+                          </span>
+                          <span className="flex items-center gap-1 hover:text-white transition-colors" title="Comments">
+                            <MessageCircle className="w-3 h-3 text-zinc-400" />
+                            <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(comments)}</span>
+                          </span>
+                        </div>
+                        <span className="flex items-center gap-1 text-zinc-500" title="Views">
+                          <Eye className="w-3 h-3 text-zinc-400" />
+                          <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(views)}</span>
+                        </span>
+                      </div>
+
                       
-                      {/* Hidden link that covers the card for clicking */}
-                      <Link href={`/dashboard/blogs/${story.slug?.current || story._id}`} className="absolute inset-0 z-10" />
+                      {/* Button that covers the card for clicking with auth check */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            openAuthModal('to read stories');
+                            return;
+                          }
+                          router.push(`/dashboard/blogs/${story.slug?.current || story._id}`);
+                        }}
+                        className="absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0"
+                        aria-label={story.title}
+                      />
                     </div>
                   </div>
                 );
@@ -648,6 +701,13 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
               {MOVIES_DATA.slice(0, 8).map((movie: any, idx: number) => (
                 <div
                   key={movie.id}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      openAuthModal('to watch movies');
+                      return;
+                    }
+                    router.push('/dashboard/movie');
+                  }}
                   className="relative w-[260px] sm:w-[300px] flex-shrink-0 snap-start flex flex-col gap-3 cursor-pointer group/card"
                 >
                   <div className="relative aspect-video rounded-xl overflow-hidden border border-white/5 group-hover/card:border-white/20 transition-colors">
