@@ -233,6 +233,33 @@ export async function POST(
       create: { storyId, likesCount: 0, viewsCount: 0, commentsCount: 1 },
     }).catch(() => null);
 
+    // If replying to another user's comment, send a rich notification and web push
+    if (parentId) {
+      try {
+        const parentComment = await prisma.storyComment.findUnique({
+          where: { id: parentId },
+        }).catch(() => null);
+
+        if (parentComment && parentComment.userId !== user.id) {
+          const { notificationService } = await import('@/services/notificationService');
+          await notificationService.createNotification({
+            userId: parentComment.userId,
+            actorId: user.id,
+            actorName: userName,
+            actorImage: userAvatar || undefined,
+            type: 'comment',
+            title: `${userName} replied to your comment`,
+            message: content.length > 80 ? `${content.substring(0, 80)}…` : content,
+            contentId: storyId,
+            contentType: 'story',
+            category: 'story',
+          }).catch((e) => console.warn('[Comments Notification] Warning:', e));
+        }
+      } catch (notifErr) {
+        console.warn('[Comments Notification] Failed to dispatch reply notification:', notifErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       comment: {

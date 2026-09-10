@@ -56,6 +56,34 @@ export async function POST(
         return null;
       });
       liked = true;
+
+      // When a user likes someone's comment, send a notification and web push to the comment author
+      try {
+        const comment = await prisma.storyComment.findUnique({
+          where: { id: commentId },
+        }).catch(() => null);
+
+        if (comment && comment.userId !== userId) {
+          const actorName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'A member';
+          const actorImage = user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined;
+          const { notificationService } = await import('@/services/notificationService');
+
+          await notificationService.createNotification({
+            userId: comment.userId,
+            actorId: userId,
+            actorName,
+            actorImage,
+            type: 'like',
+            title: `${actorName} liked your comment`,
+            message: comment.content.length > 80 ? `"${comment.content.substring(0, 80)}…"` : `"${comment.content}"`,
+            contentId: comment.storyId,
+            contentType: 'story',
+            category: 'story',
+          }).catch((e) => console.warn('[CommentLike Notification] Warning:', e));
+        }
+      } catch (notifErr) {
+        console.warn('[CommentLike Notification] Failed to dispatch like notification:', notifErr);
+      }
     }
 
     const totalLikes = await prisma.storyCommentLike.count({

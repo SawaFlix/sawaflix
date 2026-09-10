@@ -34,6 +34,29 @@ export const notificationService = {
       throw error;
     }
 
+    // Trigger targeted Web Push notification to the recipient so they receive alerts even if app is backgrounded
+    try {
+      const { sendWebPushToSubscribers } = await import('./pushNotificationService');
+      const targetUrl = notificationData.contentType === 'story' || notificationData.contentType === 'blog'
+        ? `/dashboard/blogs/${notificationData.contentId || ''}`
+        : (notificationData.contentType === 'reel' ? `/dashboard/reels?id=${notificationData.contentId || ''}` : '/dashboard');
+
+      sendWebPushToSubscribers({
+        title: notificationData.title,
+        body: notificationData.message,
+        url: targetUrl,
+        icon: notificationData.actorImage || '/logos_and_pwas/like.png',
+        tag: `sawaflix-user-${notificationData.userId}-${Date.now()}`,
+        data: {
+          contentId: notificationData.contentId,
+          contentType: notificationData.contentType,
+          type: notificationData.type,
+        }
+      }, notificationData.userId).catch((err) => console.warn('[notificationService] Web Push delivery warning:', err));
+    } catch (pushErr) {
+      console.warn('[notificationService] Error initiating web push:', pushErr);
+    }
+
     return {
       id: data.id,
       userId: data.user_id,

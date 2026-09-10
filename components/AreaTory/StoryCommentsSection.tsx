@@ -139,6 +139,26 @@ export default function StoryCommentsSection({
   useEffect(() => {
     setLoading(true);
     fetchComments(sortBy);
+
+    // Real-time synchronization: poll in background every 6 seconds for new comments and replies
+    const pollInterval = setInterval(() => {
+      // Background silent refresh without triggering full loading skeleton
+      fetch(`/api/stories/${encodeURIComponent(storyId)}/comments?sort=${sortBy}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.comments) {
+            setComments(data.comments);
+            const total = data.comments.reduce(
+              (acc: number, c: CommentItem) => acc + 1 + (c.repliesCount || 0),
+              0
+            );
+            onCommentCountChange?.(total);
+          }
+        })
+        .catch(() => {});
+    }, 6000);
+
+    return () => clearInterval(pollInterval);
   }, [storyId, sortBy]);
 
   // Handle posting a root comment
@@ -292,8 +312,8 @@ export default function StoryCommentsSection({
       id="story-comments"
       className={
         isSidebarMode
-          ? 'w-full'
-          : 'mt-16 pt-12 border-t border-white/10 scroll-mt-20'
+          ? 'w-full scale-[0.9] origin-top pb-6'
+          : 'mt-16 pt-12 border-t border-white/10 scroll-mt-20 scale-[0.9] origin-top'
       }
     >
       {/* Header & Controls - in sidebar mode, compact header with sort tabs */}
@@ -323,7 +343,7 @@ export default function StoryCommentsSection({
               onClick={() => setSortBy('top')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sortBy === 'top'
-                  ? 'bg-red-600 text-white shadow-md'
+                  ? 'bg-white text-black shadow-sm'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -334,7 +354,7 @@ export default function StoryCommentsSection({
               onClick={() => setSortBy('newest')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sortBy === 'newest'
-                  ? 'bg-red-600 text-white shadow-md'
+                  ? 'bg-white text-black shadow-sm'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -354,7 +374,7 @@ export default function StoryCommentsSection({
               onClick={() => setSortBy('top')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                 sortBy === 'top'
-                  ? 'bg-red-600 text-white'
+                  ? 'bg-white text-black font-extrabold'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -365,7 +385,7 @@ export default function StoryCommentsSection({
               onClick={() => setSortBy('newest')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                 sortBy === 'newest'
-                  ? 'bg-red-600 text-white'
+                  ? 'bg-white text-black font-extrabold'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -443,17 +463,17 @@ export default function StoryCommentsSection({
                   type="button"
                   onClick={() => handleSubmitComment()}
                   disabled={submitting || !newComment.trim()}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-lg shadow-red-600/20 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed text-[#0B0E14] font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
                       <span>Posting…</span>
                     </>
                   ) : (
                     <>
                       <span>Post Comment</span>
-                      <Send className="w-3 h-3" />
+                      <Send className="w-3 h-3 text-black" />
                     </>
                   )}
                 </button>
@@ -604,7 +624,7 @@ export default function StoryCommentsSection({
                         [comment.id]: !prev[comment.id],
                       }))
                     }
-                    className="flex items-center gap-1 text-red-500 hover:text-red-400 font-bold text-xs ml-auto transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-zinc-300 hover:text-white font-bold text-xs ml-auto transition-colors cursor-pointer"
                   >
                     {expandedReplies[comment.id] ? (
                       <>
@@ -659,10 +679,10 @@ export default function StoryCommentsSection({
                             type="button"
                             onClick={() => handlePostReply(comment.id)}
                             disabled={replySubmitting || !replyText.trim()}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-white/90 disabled:opacity-30 text-[#0B0E14] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
                           >
                             {replySubmitting ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3 h-3 animate-spin text-black" />
                             ) : (
                               <span>Reply</span>
                             )}

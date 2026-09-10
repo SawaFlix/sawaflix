@@ -79,26 +79,26 @@ const CommentSidebar = ({ storyId, storyTitle, initialComments, onClose, onStats
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
-      {/* Dark overlay backdrop */}
+    <div className="fixed inset-0 z-[9999] pointer-events-none">
+      {/* Subtle translucent backdrop so users can clearly read and view the blog while viewing comments */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/25 backdrop-blur-[2px] pointer-events-auto"
       />
 
-      {/* Slide-out panel from the RIGHT (YouTube & Reels style) */}
+      {/* Slide-out panel from the RIGHT - identical sleek width and styling as ReelComments */}
       <motion.aside
         role="dialog"
         aria-label="Story Comments"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-        className="fixed inset-y-0 right-0 w-full sm:w-[460px] md:w-[500px] bg-[#0F1117] border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-[10000]"
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="fixed inset-y-0 right-0 w-full sm:w-[380px] md:w-[410px] bg-[#0F1117] border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto z-[10000]"
       >
         {/* Header - YouTube style */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0F1117]/95 backdrop-blur-md sticky top-0 z-10">
