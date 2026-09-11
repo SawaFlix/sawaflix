@@ -603,40 +603,46 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
                 return (
                   <div
                     key={story._id}
-                    className="w-[260px] sm:w-auto flex-shrink-0 snap-start group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-red-600/30 transition-all flex flex-col"
+                    className="w-[260px] sm:w-auto flex-shrink-0 snap-start group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/25 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 flex flex-col"
                   >
-                    <div className="relative h-40 sm:h-48 overflow-hidden flex-shrink-0">
+                    <div className="relative h-44 sm:h-52 overflow-hidden flex-shrink-0">
                       <div
                         className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                         style={{ backgroundImage: `url(${getImageUrl(story.mainImage, index)})` }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E14] to-transparent opacity-50" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
+                      {/* Category badge */}
                       <div className="absolute top-3 left-3">
                         <span
                           className="px-2 py-0.5 text-white text-[9px] font-bold rounded-md tracking-widest backdrop-blur-md uppercase"
-                          style={{ backgroundColor: (story.category?.color || "#E50914") + "E6" }}
+                          style={{ backgroundColor: (story.category?.color || "#555") + "D0" }}
                         >
                           {story.category?.title || "Story"}
+                        </span>
+                      </div>
+
+                      {/* Read time badge top-right */}
+                      <div className="absolute top-3 right-3">
+                        <span className="px-2 py-0.5 bg-black/50 text-white/70 text-[9px] font-semibold rounded-md backdrop-blur-md">
+                          {story.readTime || "3 min"}
                         </span>
                       </div>
                     </div>
 
                     <div className="p-4 sm:p-5 flex-1 flex flex-col">
-                      <h3 className="text-sm sm:text-base font-bold text-white mb-2 group-hover:text-red-500 transition-colors leading-snug line-clamp-2">
+                      <h3 className="text-sm sm:text-base font-bold text-white mb-2 group-hover:text-white/90 transition-colors leading-snug line-clamp-2">
                         {story.title}
                       </h3>
 
-                      <div className="flex items-center gap-2 text-gray-500 text-[10px] font-bold tracking-widest mt-auto pt-2">
+                      <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-medium tracking-wide mt-auto pt-2">
                         <span>{dateText}</span>
-                        <div className="w-1 h-1 rounded-full bg-gray-700" />
-                        <span>{story.readTime || "3 min read"}</span>
                       </div>
 
-                      {/* Clean & Professional Stats Row */}
+                      {/* Stats Row */}
                       <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-white/5 text-zinc-400">
                         <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1.5 hover:text-red-400 transition-colors" title="Likes">
+                          <span className="flex items-center gap-1.5 hover:text-white/80 transition-colors" title="Likes">
                             <Image
                               src="/logos_and_pwas/like.png"
                               alt="Likes"
@@ -647,30 +653,31 @@ export default function DashboardLanding({ onPlayReel, reels, activeCategory, on
                             <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(likes)}</span>
                           </span>
                           <span className="flex items-center gap-1 hover:text-white transition-colors" title="Comments">
-                            <MessageCircle className="w-3 h-3 text-zinc-400" />
-                            <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(comments)}</span>
+                            <MessageCircle className="w-3 h-3 text-zinc-500" />
+                            <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(comments)}</span>
                           </span>
                         </div>
                         <span className="flex items-center gap-1 text-zinc-500" title="Views">
-                          <Eye className="w-3 h-3 text-zinc-400" />
-                          <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(views)}</span>
+                          <Eye className="w-3 h-3 text-zinc-500" />
+                          <span className="font-mono text-[10px] font-medium text-zinc-500">{formatCount(views)}</span>
                         </span>
                       </div>
 
-                      
-                      {/* Button that covers the card for clicking with auth check */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            openAuthModal('to read stories');
-                            return;
-                          }
-                          router.push(`/dashboard/blogs/${story.slug?.current || story._id}`);
-                        }}
-                        className="absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0"
-                        aria-label={story.title}
-                      />
+                      {/* Link overlay — triggers NProgress top loader */}
+                      {isAuthenticated ? (
+                        <Link
+                          href={`/dashboard/blogs/${story.slug?.current || story._id}`}
+                          className="absolute inset-0 z-10"
+                          aria-label={story.title}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openAuthModal('to read stories')}
+                          className="absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0"
+                          aria-label={story.title}
+                        />
+                      )}
                     </div>
                   </div>
                 );

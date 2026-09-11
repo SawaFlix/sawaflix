@@ -85,9 +85,16 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom NProgress styling for TopLoader to place it right under the nav */
+/* Custom NProgress styling for TopLoader to place it prominently at the top with Cameroon gradient */
 #nprogress .bar {
-  top: 64px !important;
-  height: 3px !important;
-  box-shadow: 0 0 10px rgba(229, 9, 20, 0.8) !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 3.5px !important;
+  z-index: 9999999 !important;
+  background: linear-gradient(90deg, #009639, #CE1126, #FCD116) !important;
+  box-shadow: 0 0 10px rgba(206, 17, 38, 0.7), 0 0 5px rgba(252, 209, 22, 0.7) !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #FCD116, 0 0 5px #FCD116 !important;
 }

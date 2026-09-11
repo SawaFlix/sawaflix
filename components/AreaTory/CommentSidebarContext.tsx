@@ -72,6 +72,14 @@ type CommentSidebarProps = {
 
 const CommentSidebar = ({ storyId, storyTitle, initialComments, onClose, onStatsUpdate }: CommentSidebarProps) => {
   const [liveCount, setLiveCount] = useState(initialComments);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  React.useEffect(() => {
+    const checkIsDesktop = () => setIsDesktop(window.innerWidth >= 768);
+    checkIsDesktop();
+    window.addEventListener('resize', checkIsDesktop);
+    return () => window.removeEventListener('resize', checkIsDesktop);
+  }, []);
 
   const handleCommentCountChange = (newCount: number) => {
     setLiveCount(newCount);
@@ -87,21 +95,32 @@ const CommentSidebar = ({ storyId, storyTitle, initialComments, onClose, onStats
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/25 backdrop-blur-[2px] pointer-events-auto"
+        className="fixed inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-auto"
       />
 
-      {/* Slide-out panel from the RIGHT - identical sleek width and styling as ReelComments */}
+      {/* YouTube Shorts / Reels style panel: bottom sheet on mobile, right drawer on desktop */}
       <motion.aside
         role="dialog"
         aria-label="Story Comments"
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
+        initial={isDesktop ? { x: '100%' } : { y: '100%' }}
+        animate={isDesktop ? { x: 0 } : { y: 0 }}
+        exit={isDesktop ? { x: '100%' } : { y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-y-0 right-0 w-full sm:w-[380px] md:w-[410px] bg-[#0F1117] border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto z-[10000]"
+        className={
+          isDesktop
+            ? 'fixed inset-y-0 right-0 w-[400px] bg-[#0F1117] border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto z-[10000]'
+            : 'fixed inset-x-0 bottom-0 h-[75vh] max-h-[85vh] bg-[#0F1117] border-t border-white/10 rounded-t-3xl shadow-2xl flex flex-col pointer-events-auto z-[10000]'
+        }
       >
+        {/* Mobile Swipe Handle */}
+        {!isDesktop && (
+          <div className="pt-3 pb-1 flex justify-center w-full shrink-0">
+            <div className="h-1.5 w-12 rounded-full bg-white/20" />
+          </div>
+        )}
+
         {/* Header - YouTube style */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0F1117]/95 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#0F1117]/95 backdrop-blur-md sticky top-0 z-10 shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-base font-black tracking-tight text-white flex items-center gap-2">
               <span>Comments</span>
@@ -115,7 +134,7 @@ const CommentSidebar = ({ storyId, storyTitle, initialComments, onClose, onStats
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Close comments panel"
               title="Close"
             >

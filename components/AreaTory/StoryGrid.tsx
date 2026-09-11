@@ -166,22 +166,23 @@ export default function StoryGrid() {
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-red-600/5 blur-[120px] rounded-full" />
 
       <div className="max-w-6xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 relative z-30">
-          <div>
-            <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-tighter">
-              Latest stories
-            </h2>
-            <p className="text-gray-500 text-sm font-medium max-w-lg">
-              Stay updated with cultural insights, community news, and cinematic releases.
-            </p>
-          </div>
-          <div className="flex gap-3 flex-wrap">
+        {/* Header */}
+        <div className="mb-6 relative z-30">
+          <h2 className="text-xl md:text-2xl font-black text-white mb-1 tracking-tighter">
+            Latest stories
+          </h2>
+          <p className="text-gray-500 text-sm font-medium max-w-lg mb-5">
+            Stay updated with cultural insights, community news, and cinematic releases.
+          </p>
+
+          {/* Horizontal scrollable category tabs — single line, no wrap */}
+          <div className="flex overflow-x-auto gap-2 no-scrollbar pb-1">
             <button
               onClick={() => { setActiveCategory("all"); setVisibleCount(6); }}
-              className={`px-4 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-300 cursor-pointer tracking-widest ${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-[10px] font-bold transition-all duration-200 cursor-pointer tracking-widest ${
                 activeCategory === "all"
-                  ? "border-white text-white bg-white/10"
-                  : "border-white/10 text-gray-400 hover:border-white/40 hover:text-white hover:bg-white/5"
+                  ? "border-white/60 text-white bg-white/15"
+                  : "border-white/10 text-gray-400 hover:border-white/30 hover:text-white hover:bg-white/5"
               }`}
             >
               All
@@ -189,16 +190,16 @@ export default function StoryGrid() {
             {categories.map((cat) => (
               <button
                 key={cat._id}
-                onClick={() => { 
+                onClick={() => {
                   if (cat.slug?.current) {
-                    setActiveCategory(cat.slug.current); 
-                    setVisibleCount(6); 
+                    setActiveCategory(cat.slug.current);
+                    setVisibleCount(6);
                   }
                 }}
-                className={`px-4 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-300 cursor-pointer tracking-widest ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full border text-[10px] font-bold transition-all duration-200 cursor-pointer tracking-widest ${
                   activeCategory === (cat.slug?.current || "")
-                    ? "border-white text-white bg-white/10"
-                    : "border-white/10 text-gray-400 hover:border-white/40 hover:text-white hover:bg-white/5"
+                    ? "border-white/60 text-white bg-white/15"
+                    : "border-white/10 text-gray-400 hover:border-white/30 hover:text-white hover:bg-white/5"
                 }`}
               >
                 {cat.title}
@@ -228,7 +229,7 @@ export default function StoryGrid() {
             {displayedStories.map((story, index) => (
               <div
                 key={story._id}
-                className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-red-600/30 transition-all"
+                className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-white/25 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
               >
                 {/* Image Container */}
                 <div className="relative h-48 overflow-hidden">
@@ -236,15 +237,15 @@ export default function StoryGrid() {
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                     style={{ backgroundImage: `url(${getImageUrl(story.mainImage, index)})` }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E14] to-transparent opacity-50" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                   {/* Category Badge */}
                   <div className="absolute top-3 left-3">
                     <span
                       className="px-2 py-0.5 text-white text-[9px] font-bold rounded-md tracking-widest backdrop-blur-md"
-                      style={{ backgroundColor: (story.category?.color || "#E50914") + "E6" }}
+                      style={{ backgroundColor: (story.category?.color || "#555") + "D0" }}
                     >
-                      {story.category?.title || "Uncategorized"}
+                      {story.category?.title || "Culture"}
                     </span>
                   </div>
 
@@ -269,7 +270,7 @@ export default function StoryGrid() {
                     <span>{story.readTime || "5 min read"}</span>
                   </div>
 
-                  <h3 className="text-base font-bold text-white mb-2 group-hover:text-red-500 transition-colors leading-snug">
+                  <h3 className="text-base font-bold text-white mb-2 group-hover:text-white/85 transition-colors leading-snug">
                     {story.title}
                   </h3>
 
@@ -280,7 +281,7 @@ export default function StoryGrid() {
                   {/* Stats Row */}
                   <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-white/5 text-zinc-400">
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1.5 hover:text-red-400 transition-colors" title="Likes">
+                      <span className="flex items-center gap-1.5 hover:text-white/80 transition-colors" title="Likes">
                         <Image
                           src="/logos_and_pwas/like.png"
                           alt="Likes"
@@ -291,19 +292,19 @@ export default function StoryGrid() {
                         <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(story.likes)}</span>
                       </span>
                       <span className="flex items-center gap-1 hover:text-white transition-colors" title="Comments">
-                        <MessageCircle className="w-3 h-3 text-zinc-400" />
-                        <span className="font-mono text-[10px] font-medium text-zinc-300">{formatCount(story.comments)}</span>
+                        <MessageCircle className="w-3 h-3 text-zinc-500" />
+                        <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(story.comments)}</span>
                       </span>
                     </div>
                     <span className="flex items-center gap-1 text-zinc-500" title="Views">
-                      <Eye className="w-3 h-3 text-zinc-400" />
-                      <span className="font-mono text-[10px] font-medium text-zinc-400">{formatCount(story.views)}</span>
+                      <Eye className="w-3 h-3 text-zinc-500" />
+                      <span className="font-mono text-[10px] font-medium text-zinc-500">{formatCount(story.views)}</span>
                     </span>
                   </div>
 
                   <Link
                     href={`/dashboard/blogs/${story.slug?.current || story._id}`}
-                    className="flex items-center gap-2 text-white font-bold text-[10px] tracking-widest group/link cursor-pointer hover:text-red-500 transition-colors mt-4"
+                    className="flex items-center gap-2 text-zinc-400 font-bold text-[10px] tracking-widest group/link cursor-pointer hover:text-white transition-colors mt-4"
                   >
                     Read story
                     <ArrowUpRight className="w-3 h-3 transition-transform group-hover/link:translate-x-1 group-hover/link:-translate-y-1" />

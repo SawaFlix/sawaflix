@@ -313,7 +313,7 @@ export default function BlogDetailsClient({ slug }: { slug: string }) {
               className="px-2 py-0.5 text-white text-[8px] font-black rounded-md uppercase tracking-[0.2em]"
               style={{ backgroundColor: story.category?.color || "#E50914" }}
             >
-              {story.category?.title || "Uncategorized"}
+              {story.category?.title || "Culture"}
             </span>
             <div className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
               <Clock className="w-3 h-3" />
